@@ -1,8 +1,13 @@
+import org.w3c.dom.Document;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
+import java.util.ArrayList;
 
 /**
  * The configuration manager. It loads the site configuration files for each of
- * the sites supported by the server. This class follows the
+ * the sites supported by the server. This class follows the singleton pattern.
  * @author Benjamin Russell (brr1922@rit.edu)
  */
 public class ConfigManager {
@@ -31,15 +36,30 @@ public class ConfigManager {
         return ourInstance;
     }
 
-    public void getSiteConfigurations() {
+    public ArrayList<SiteConfiguration> getSiteConfigurations() {
         // Load the files in the configuration
         File[] siteConfigurationFiles = configFolder.listFiles();
+        for(File siteFile : siteConfigurationFiles) {
+            readSiteConfiguration(siteFile);
+        }
+
+        return null;
     }
 
-}
+    private SiteConfiguration readSiteConfiguration(File siteFile) {
+        try {
+            // Read in the XML for the site configuration
+            DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            Document xmlDoc = documentBuilder.parse(siteFile);
+            xmlDoc.normalizeDocument();
 
-public class ConfigurationException extends RuntimeException {
-    ConfigurationException(String message) {
-        super(message);
+            System.out.println("Found Site Configuration: " + siteFile.getName());
+            System.out.println(" - ");
+        } catch(Exception e) {
+            System.err.println("*** Failed to parse site configuration for " + siteFile.getName());
+            System.err.println("\n" + e.getMessage());
+        }
+
+        return null;
     }
 }

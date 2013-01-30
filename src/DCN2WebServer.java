@@ -4,4 +4,10 @@
  * Time: 4:46 PM
  */
 public class DCN2WebServer {
+
+    public static void main(String[] argv) {
+        ConfigManager configManager = ConfigManager.getInstance();
+        configManager.getSiteConfigurations();
+    }
+
 }
