@@ -97,7 +97,7 @@ public class ConfigManager {
 
         } catch(Exception e) {
             System.err.println("*** Failed to parse site configuration for " + siteFile.getName());
-            System.err.println("\n" + e.getMessage());
+            System.err.println("    " + e.getMessage());
             return null;
         }
     }
