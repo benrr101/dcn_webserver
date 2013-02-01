@@ -1,5 +1,5 @@
 import org.w3c.dom.Document;
-
+import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
@@ -39,11 +39,16 @@ public class ConfigManager {
     public ArrayList<SiteConfiguration> getSiteConfigurations() {
         // Load the files in the configuration
         File[] siteConfigurationFiles = configFolder.listFiles();
+        ArrayList<SiteConfiguration> siteConfigs = new ArrayList<SiteConfiguration>();
         for(File siteFile : siteConfigurationFiles) {
-            readSiteConfiguration(siteFile);
+            SiteConfiguration config = readSiteConfiguration(siteFile);
+            if(config != null) {
+                siteConfigs.add(config);
+                System.out.println(config);
+            }
         }
 
-        return null;
+        return siteConfigs;
     }
 
     private SiteConfiguration readSiteConfiguration(File siteFile) {
@@ -53,13 +58,47 @@ public class ConfigManager {
             Document xmlDoc = documentBuilder.parse(siteFile);
             xmlDoc.normalizeDocument();
 
-            System.out.println("Found Site Configuration: " + siteFile.getName());
-            System.out.println(" - ");
+            // Grab some elements from the configuration that defines the site
+            NodeList rootPath = xmlDoc.getElementsByTagName("rootPath");
+            NodeList host     = xmlDoc.getElementsByTagName("host");
+            NodeList port     = xmlDoc.getElementsByTagName("port");
+
+            // Verify that it's a site configuration
+            // At a minimum we require a site tag, a root path, a host, and a port
+            if(xmlDoc.getElementsByTagName("site").getLength() != 1) {
+                // <site> not provided
+                throw new ConfigurationException(siteFile.getName()
+                        + " is not a valid site configuration. No site tag is provided.");
+            } else if(rootPath.getLength() != 1) {
+                // <rootPath> not provided
+                throw new ConfigurationException(siteFile.getName()
+                        + " is not a valid site configuration. No root path tag is provided");
+            } else if(host.getLength() != 1) {
+                // <host> not provided
+                throw new ConfigurationException(siteFile.getName()
+                        + " is not a valid site configuration. No host tag provided.");
+            } else if(port.getLength() != 1) {
+                // <port> not provided
+                throw new ConfigurationException(siteFile.getName()
+                        + " is not a valid site configuration. No port tag provided.");
+            }
+
+            // Generate a new site configuration class
+            SiteConfiguration config = new SiteConfiguration();
+            config.setRoot(rootPath.item(0).getTextContent());
+            config.setHost(host.item(0).getTextContent());
+            try {
+                config.setPort(Integer.parseInt(port.item(0).getTextContent()));
+            } catch(NumberFormatException e) {
+                throw new ConfigurationException(siteFile.getName() + " is not a valid site configuration. Port is not numeric.");
+            }
+
+            return config;
+
         } catch(Exception e) {
             System.err.println("*** Failed to parse site configuration for " + siteFile.getName());
             System.err.println("\n" + e.getMessage());
+            return null;
         }
-
-        return null;
     }
 }
