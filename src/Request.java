@@ -3,6 +3,7 @@ import sun.misc.Regexp;
 
 import java.io.StringReader;
 import java.util.Scanner;
+import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,9 +33,19 @@ public class Request {
     private String requestUri;
     private String host;
 
+    private SiteConfiguration siteConfiguration = null;
+
     // CONSTRUCTOR /////////////////////////////////////////////////////////
 
-    public Request(String requestString) throws RequestException{
+    /**
+     * Creates a request object based on the text of the HTTP request.
+     * Validates the protocol version, and the request method.
+     * @param requestString     The text of the HTTP request
+     * @throws RequestException Thrown if the request is via an unsupported
+     *                          protocol version, the method is unsupported, or
+     *                          if the method line is malformed.
+     */
+    public Request(String requestString) throws RequestException {
         // Create a string reader
         Scanner requestReader = new Scanner(requestString);
 
@@ -69,9 +80,64 @@ public class Request {
     }
 
     // METHODS /////////////////////////////////////////////////////////////
+    public Response process() {
+        // Make sure that the request has a configuration to use for processing
+        if(this.siteConfiguration == null) {
+            throw new NullPointerException("Cannot process request if site configuration is undefined.");
+        }
 
-    public Response processRequest() {
+        // Extract the URI based on the style of URI we received
+        String uri = "";
+        if(requestUri.startsWith("http://")) {
+            StringTokenizer tok = new StringTokenizer(requestUri, "/", true);
+            tok.nextToken();
+            tok.nextToken();
+            tok.nextToken();
+            tok.nextToken();
+            while(tok.hasMoreTokens()) {
+                uri += tok.nextToken();
+            }
+        } else if(requestUri.startsWith("/")) {
+            uri = requestUri;
+        } else {
+            // It's an invalid URI
+            throw new RequestException(400, "Bad Request");
+        }
+
+        // Break off the page to load
+        StringTokenizer tok = new StringTokenizer(uri, "?");
+        if(tok.countTokens() > 2) {
+            // There's > 1 ? in the uri. that's invalid
+            throw new RequestException(400, "Bad Request");
+        }
+        String page = tok.nextToken();
+
+        // Break off get parameters
+        if(tok.hasMoreTokens()) {
+            String getParams = tok.nextToken();
+            // @TODO: Process these
+        }
+
+        // Extract the page to load from the request uri
+        System.out.println("URL: " + page);
+
         return null;
+    }
+
+    // SETTERS /////////////////////////////////////////////////////////////
+
+    /**
+     * Sets the site configuration
+     * @param config    The site configuration the request will be processed with
+     * @throws NullPointerException Thrown if the configuration passed in is null
+     */
+    public void setSiteConfiguration(SiteConfiguration config) throws NullPointerException {
+        // Verify that the site configuration is valid
+        if(config == null) {
+            throw new NullPointerException("Site configuration cannot be null");
+        }
+
+        this.siteConfiguration = config;
     }
 
     // GETTERS /////////////////////////////////////////////////////////////
