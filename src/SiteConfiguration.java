@@ -32,6 +32,11 @@ public class SiteConfiguration {
 
     // METHODS /////////////////////////////////////////////////////////////
     // GETTERS /////////////////////////////////////////////////////////////
+
+    /**
+     * Generates a string representation of the site configuration
+     * @return  String representation of the site configuration
+     */
     public String toString() {
         String result = "Root: " + root + "\n";
         result       += "Host: " + host + "\n";
@@ -39,11 +44,17 @@ public class SiteConfiguration {
         return result;
     }
 
-    // SETTERS /////////////////////////////////////////////////////////////
-    public void setHost(String host) {
-        this.host = host;
-    }
+    public int getPort() { return this.port; }
+    public String getHost() { return this.host; }
 
+    // SETTERS /////////////////////////////////////////////////////////////
+    public void setHost(String host) { this.host = host; }
+    public void setRoot(String root) { this.root = root; }
+
+    /**
+     * Sets the port of the site configuration
+     * @param port  The port number that the site should listen on
+     */
     public void setPort(int port) {
         // Verify that the port is in a legal range
         if((port > PORT_MAX_PORT || port < PORT_MIN_PORT) && port != PORT_WELL_KNOWN) {
@@ -52,8 +63,6 @@ public class SiteConfiguration {
         this.port = port;
     }
 
-    public void setRoot(String root) {
-        this.root = root;
-    }
+
 
 }
