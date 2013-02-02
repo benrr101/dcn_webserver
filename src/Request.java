@@ -1,6 +1,7 @@
 import com.sun.org.apache.bcel.internal.generic.GETFIELD;
 import sun.misc.Regexp;
 
+import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.util.Scanner;
 import java.util.StringTokenizer;
@@ -119,7 +120,11 @@ public class Request {
         }
 
         // Extract the page to load from the request uri
-        System.out.println("URL: " + page);
+        try {
+            siteConfiguration.getPage(page);
+        } catch(FileNotFoundException e) {
+            throw new RequestException(404, "File not found");
+        }
 
         return null;
     }
