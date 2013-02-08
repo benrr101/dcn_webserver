@@ -51,7 +51,7 @@ public class PortListener extends Thread{
                     requestString += line + "\r\n";
                 }
                 Request req = new Request(requestString);
-                Response res = req.processRequest();
+                Response res = req.process();
                 //System.out.println(res);
                 writer.println(res);
                 writer.flush();
