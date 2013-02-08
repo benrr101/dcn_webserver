@@ -4,6 +4,8 @@ import sun.misc.Regexp;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
@@ -34,6 +36,9 @@ public class Request {
     private RequestMethod requestMethod;
     private String requestUri;
     private String host;
+
+    private HashMap<String, String> getVariables;
+    private HashMap<String, String> postVariables;
 
     private SiteConfiguration siteConfiguration = null;
 
@@ -79,6 +84,10 @@ public class Request {
         if(majorVersion > MAX_HTTP_MAJOR || (majorVersion == MAX_HTTP_MAJOR && minorVersion > MAX_HTTP_MINOR)) {
             throw new RequestException(505, "HTTP Version Not Supported");
         }
+
+        // Create storage for the put and get variables
+        this.getVariables = new HashMap<String, String>();
+        this.postVariables = new HashMap<String, String>();
     }
 
     // METHODS /////////////////////////////////////////////////////////////
@@ -117,7 +126,11 @@ public class Request {
         // Break off get parameters
         if(tok.hasMoreTokens()) {
             String getParams = tok.nextToken();
-            // @TODO: Process these
+            processGetParameters(getParams);
+            //@TODO: Remove debug code
+            for(Map.Entry<String, String> entry : this.getVariables.entrySet()) {
+                System.out.println("GET: " + entry.getKey() + "=>" + entry.getValue());
+            }
         }
 
         // Extract the page to load from the request uri
@@ -134,6 +147,31 @@ public class Request {
         }
 
         return null;
+    }
+
+    // PRIVATE METHODS /////////////////////////////////////////////////////
+
+    /**
+     * Processes GET style parameters from the uri and stores them in the
+     * internal get variables
+     * @param   query     The query portion of the URI
+     */
+    private void processGetParameters(String query) {
+        // Split up the query string based on &'s, x=y
+        StringTokenizer getTok = new StringTokenizer(query, "&");
+        Pattern p = Pattern.compile("(.*)=(.*)");
+
+        // Iterate over the parameters and create a new one for each parameter given
+        while(getTok.hasMoreTokens()) {
+            // Check to see if it matches the format
+            Matcher m = p.matcher(getTok.nextToken());
+            if(!m.matches()) {
+                continue;
+            }
+
+            // It matches the proper format. Now process it.
+            this.getVariables.put(m.group(1), m.group(2));
+        }
     }
 
     // SETTERS /////////////////////////////////////////////////////////////
