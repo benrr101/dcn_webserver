@@ -1,5 +1,4 @@
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.*;
 
 /**
  * The site configuration class. It stores information about the site
@@ -35,7 +34,15 @@ public class SiteConfiguration {
 
     // METHODS /////////////////////////////////////////////////////////////
 
-    public byte[] getPage(String url) throws FileNotFoundException {
+    /**
+     * Retrieves the file that was requested
+     * @param   url     The url that requested the page, stripped of its host
+     * @return  A byte array of the file that was requested.
+     * @throws  IOException     FileNotFoundException thrown if the file does
+     *                          not exist. IOException thrown if reading the
+     *                          file failed somehow.
+     */
+    public byte[] getPage(String url) throws IOException {
         // Swap / with the system-specific path separator
         url = url.replace('/', File.separatorChar);
 
@@ -50,7 +57,16 @@ public class SiteConfiguration {
 
         // @TODO: Decide on CGI stuff here
 
-        return null;
+        // Build a stream for reading bytes from the file
+        try {
+            byte[] fileData = new byte[(int)file.length()];
+            DataInputStream dis = new DataInputStream((new FileInputStream(file)));
+            dis.readFully(fileData);
+            dis.close();
+            return fileData;
+        } catch(IOException e) {
+            throw e;
+        }
     }
 
     // GETTERS /////////////////////////////////////////////////////////////
@@ -84,7 +100,4 @@ public class SiteConfiguration {
         }
         this.port = port;
     }
-
-
-
 }
