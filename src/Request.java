@@ -136,17 +136,15 @@ public class Request {
         // Extract the page to load from the request uri
         try {
             byte[] q = siteConfiguration.getPage(page);
-            //@TODO: Remove debug code
-            System.out.println("Printing file---");
-            System.out.print(new String(q));
-            System.out.println("Done---");
+
+            // Create a response based on the file bytes
+            return new Response(q, 200, "OK");
+
         } catch(FileNotFoundException e) {
             throw new RequestException(404, "File not found");
         } catch(IOException e) {
             throw new RequestException(500, "Server Error");
         }
-
-        return null;
     }
 
     // PRIVATE METHODS /////////////////////////////////////////////////////
