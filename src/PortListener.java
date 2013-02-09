@@ -65,7 +65,8 @@ public class PortListener extends Thread{
                 //todo: log this instead of printing to stderr
                 SimpleDateFormat gmtDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 gmtDateFormat.setTimeZone(TimeZone.getTimeZone("GMT-5"));
-                System.err.println(gmtDateFormat.format(new Date()) + " RequestException in PortListener: " + re.getMessage());
+                System.err.println(gmtDateFormat.format(new Date()) +
+                        " RequestException in PortListener on port " + this.portNumber + ": " + re.getMessage());
                 try {
                     this.re = re;
                     writer.println("HTTP/1.0 " + re.getCode() + " Not Implemented");
