@@ -1,4 +1,5 @@
 import java.io.*;
+import java.util.HashMap;
 
 /**
  * The site configuration class. It stores information about the site
@@ -32,6 +33,11 @@ public class SiteConfiguration {
      */
     private String root;
 
+    /**
+     * A list of error codes and the files to use for their handler
+     */
+    private HashMap<Integer, String> errorHandlers = new HashMap<Integer, String>();
+
     // METHODS /////////////////////////////////////////////////////////////
 
     /**
@@ -46,13 +52,18 @@ public class SiteConfiguration {
         // Swap / with the system-specific path separator
         url = url.replace('/', File.separatorChar);
 
+        // If the path does not start with a separator, add one
+        if(!url.startsWith(File.separator)) {
+            url = File.separator + url;
+        }
+
         // Build the path to the page
         String path = root + url;
 
         // Create a file object for the path
         File file = new File(path);
         if(!file.exists()) {
-            throw new FileNotFoundException("Path does not exist");
+            throw new FileNotFoundException("Path does not exist: " + path);
         }
 
         // @TODO: Decide on CGI stuff here
@@ -82,6 +93,10 @@ public class SiteConfiguration {
         return result;
     }
 
+    public String getErrorHandlerPath(int code) {
+        return errorHandlers.get(code);
+    }
+
     public int getPort() { return this.port; }
     public String getHost() { return this.host; }
 
@@ -99,5 +114,15 @@ public class SiteConfiguration {
             throw new ConfigurationException("Cannot set port to " + port + ". Port out of safe range.");
         }
         this.port = port;
+    }
+
+    /**
+     * Register an error handler
+     * @param code  The code to return the page on
+     * @param path  The path to return when the error code happens
+     */
+    public void addErrorHandler(int code, String path) {
+        // Store the error handler
+        this.errorHandlers.put(code, path);
     }
 }

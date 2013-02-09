@@ -112,14 +112,14 @@ public class Request {
             uri = requestUri;
         } else {
             // It's an invalid URI
-            throw new RequestException(400, "Bad Request");
+            return processError(400, "Bad Request");
         }
 
         // Break off the page to load
         StringTokenizer tok = new StringTokenizer(uri, "?");
         if(tok.countTokens() > 2) {
             // There's > 1 ? in the uri. that's invalid
-            throw new RequestException(400, "Bad Request");
+            return processError(400, "Bad Request");
         }
         String page = tok.nextToken();
 
@@ -127,10 +127,6 @@ public class Request {
         if(tok.hasMoreTokens()) {
             String getParams = tok.nextToken();
             processGetParameters(getParams);
-            //@TODO: Remove debug code
-            for(Map.Entry<String, String> entry : this.getVariables.entrySet()) {
-                System.out.println("GET: " + entry.getKey() + "=>" + entry.getValue());
-            }
         }
 
         // Extract the page to load from the request uri
@@ -141,9 +137,9 @@ public class Request {
             return new Response(q, 200, "OK");
 
         } catch(FileNotFoundException e) {
-            throw new RequestException(404, "File not found");
+            return processError(404, "File Not Found");
         } catch(IOException e) {
-            throw new RequestException(500, "Server Error");
+            return processError(500, "Internal Server Error");
         }
     }
 
@@ -172,6 +168,24 @@ public class Request {
         }
     }
 
+    private Response processError(int code, String message) {
+        // Grab the page for the error code, if it exists
+        String path = siteConfiguration.getErrorHandlerPath(code);
+        if(path == null) {
+            // @TODO: Return the default error handler
+            System.err.println("Failed to find error handler");
+            return null;
+        } else {
+            try {
+                // Return the error handler page
+                return new Response(siteConfiguration.getPage(path), code, message);
+            } catch(Exception e) {
+                // @TODO: Return the default error handler
+                System.err.println(e.getMessage());
+                return null;
+            }
+        }
+    }
     // SETTERS /////////////////////////////////////////////////////////////
 
     /**
