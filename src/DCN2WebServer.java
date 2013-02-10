@@ -5,20 +5,26 @@
  */
 
 import java.util.ArrayList;
+import java.util.HashMap;
+
 public class DCN2WebServer {
 
     public static void main(String[] argv) {
         ConfigManager configManager = ConfigManager.getInstance();
         ArrayList<SiteConfiguration> configurations = configManager.getSiteConfigurations();
-        ArrayList<PortListener> listeners = new ArrayList<PortListener>();
+        HashMap<Integer, PortListener> listeners = new HashMap<Integer, PortListener>();
 
         //create port listeners from Site Configurations
         for(SiteConfiguration conf : configurations){
-            PortListener temp = new PortListener(conf.getPort());
-            listeners.add(temp);
-            //start the PortListener
-            temp.start();
+            if(!listeners.containsKey(conf.getPort())){
+                PortListener temp = new PortListener(conf);
+                listeners.put(conf.getPort(), temp);
+            }
         }
-    }
+        //start the PortListeners
+        for(Integer l : listeners.keySet()){
+            listeners.get(l).start();
+        }
+    }//main
 
 }
