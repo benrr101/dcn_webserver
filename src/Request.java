@@ -1,11 +1,6 @@
-import com.sun.org.apache.bcel.internal.generic.GETFIELD;
-import sun.misc.Regexp;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
@@ -134,7 +129,10 @@ public class Request {
             byte[] q = siteConfiguration.getPage(page);
 
             // Create a response based on the file bytes
-            return new Response(q, 200, "OK");
+            Response r = new Response(q, 200, "OK");
+            //@TODO: handle 404's here. they could come through
+            r.setContentType(siteConfiguration.getPageContentType(page));
+            return r;
 
         } catch(FileNotFoundException e) {
             return processError(404, "File Not Found");
@@ -210,11 +208,16 @@ public class Request {
     public String toString() {
         StringBuilder b = new StringBuilder();
         b.append("Protocol Version: ");
-        b.append(majorVersion + "." + minorVersion + "\n");
+        b.append(majorVersion);
+        b.append(".");
+        b.append(minorVersion);
+        b.append("\n");
         b.append("Method: ");
-        b.append(requestMethod + "\n");
+        b.append(requestMethod);
+        b.append("\n");
         b.append("URI: ");
-        b.append(requestUri + "\n");
+        b.append(requestUri);
+        b.append("\n");
 
         return b.toString();
     }

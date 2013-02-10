@@ -7,11 +7,13 @@
 import java.net.Socket;
 
 public class Response {
-    private String responseData;
+    private byte[] responseData;
     private String HTTPMessage;
     private int HTTPCode;
 
-    public Response(String responseData, int HTTPCode, String HTTPMessage){
+    private String contentType;
+
+    public Response(byte[] responseData, int HTTPCode, String HTTPMessage){
         this.responseData = responseData;
         this.HTTPCode = HTTPCode;
         this.HTTPMessage = HTTPMessage;
@@ -21,7 +23,7 @@ public class Response {
         StringBuilder header = new StringBuilder();
         header.append("HTTP/1.0 " + HTTPCode + " " + HTTPMessage + "\r\n");
         //header.append("Host: " + socketResource.getInetAddress() + "\r\n");
-        header.append("Content-Type: text/HTML\r\n");
+        header.append("Content-Type: " + this.contentType + "\r\n");
         //header.append("Server: " + socketResource.getLocalAddress() + "\r\n");
         header.append("\r\n");
         return header.toString();
@@ -30,9 +32,22 @@ public class Response {
     public String toString(){
         StringBuilder message = new StringBuilder();
         message.append(this.constructHeader());
-        message.append(this.responseData);
+        message.append(new String(this.responseData));
         message.append("\r\n");
         return message.toString();
     }
 
+    public byte[] getBytes() {
+        // Concatenate the header and content
+        byte[] header = constructHeader().getBytes();
+        byte[] concat = new byte[header.length + responseData.length];
+        System.arraycopy(header, 0, concat, 0, header.length);
+        System.arraycopy(responseData, 0, concat, header.length, responseData.length);
+
+        return concat;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
 }

@@ -1,5 +1,7 @@
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
@@ -91,6 +93,15 @@ public class ConfigManager {
                 config.setPort(Integer.parseInt(port.item(0).getTextContent()));
             } catch(NumberFormatException e) {
                 throw new ConfigurationException(siteFile.getName() + " is not a valid site configuration. Port is not numeric.");
+            }
+
+            // Process error handlers
+            NodeList errorHandlers = xmlDoc.getElementsByTagName("errorHandler");
+            for(int i = 0; i < errorHandlers.getLength(); ++i) {
+                Element errorHandler = (Element)errorHandlers.item(i);
+                int code = Integer.parseInt(errorHandler.getAttribute("code"));
+                String path = errorHandler.getTextContent();
+                config.addErrorHandler(code, path);
             }
 
             return config;

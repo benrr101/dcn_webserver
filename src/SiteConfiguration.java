@@ -1,4 +1,5 @@
 import java.io.*;
+import java.net.URLConnection;
 import java.util.HashMap;
 
 /**
@@ -49,6 +50,43 @@ public class SiteConfiguration {
      *                          file failed somehow.
      */
     public byte[] getPage(String url) throws IOException {
+        // Get the file to display
+        File file = getFileFromUrl(url);
+
+        // @TODO: Decide on CGI stuff here
+
+        // Build a stream for reading bytes from the file
+        byte[] fileData = new byte[(int)file.length()];
+        DataInputStream dis = new DataInputStream((new FileInputStream(file)));
+        dis.readFully(fileData);
+        dis.close();
+        System.out.println("Bytes after reading: " + fileData.length);
+        return fileData;
+    }
+
+    /**
+     * Retrieves the mime-type of the file based on the URL.
+     * @param   url     The URL that was requested
+     * @return  The mime-type of the file
+     * @throws  IOException Returned when something blew up.
+     */
+    public String getPageContentType(String url) throws IOException {
+        // Get the file to get info about
+        File file = getFileFromUrl(url);
+
+        // Peek into the file and guess the file type
+        InputStream is = new BufferedInputStream(new FileInputStream(file));
+        String contentType = URLConnection.guessContentTypeFromStream(is);
+
+        // Close up the stream
+        is.close();
+
+        return contentType;
+    }
+
+    // PRIVATE METHODS /////////////////////////////////////////////////////
+
+    private File getFileFromUrl(String url) throws FileNotFoundException {
         // Swap / with the system-specific path separator
         url = url.replace('/', File.separatorChar);
 
@@ -66,18 +104,7 @@ public class SiteConfiguration {
             throw new FileNotFoundException("Path does not exist: " + path);
         }
 
-        // @TODO: Decide on CGI stuff here
-
-        // Build a stream for reading bytes from the file
-        try {
-            byte[] fileData = new byte[(int)file.length()];
-            DataInputStream dis = new DataInputStream((new FileInputStream(file)));
-            dis.readFully(fileData);
-            dis.close();
-            return fileData;
-        } catch(IOException e) {
-            throw e;
-        }
+        return file;
     }
 
     // GETTERS /////////////////////////////////////////////////////////////
