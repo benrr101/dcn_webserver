@@ -60,7 +60,6 @@ public class SiteConfiguration {
         DataInputStream dis = new DataInputStream((new FileInputStream(file)));
         dis.readFully(fileData);
         dis.close();
-        System.out.println("Bytes after reading: " + fileData.length);
         return fileData;
     }
 
