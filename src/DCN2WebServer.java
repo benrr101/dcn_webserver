@@ -17,7 +17,7 @@ public class DCN2WebServer {
             PortListener temp = new PortListener(conf.getPort());
             listeners.add(temp);
             //start the PortListener
-            temp.run();
+            temp.start();
         }
     }
 
