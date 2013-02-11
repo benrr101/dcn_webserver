@@ -3,6 +3,7 @@
     <rootPath>C:\webroot</rootPath>
     <port>80</port>
     <host>*</host>
+    <indexHandler>index.html</indexHandler>
     <errorHandlers>
         <errorHandler code='404'>404.html</errorHandler>
     </errorHandlers>

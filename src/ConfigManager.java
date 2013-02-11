@@ -95,6 +95,12 @@ public class ConfigManager {
                 throw new ConfigurationException(siteFile.getName() + " is not a valid site configuration. Port is not numeric.");
             }
 
+            // Process the index handler, if it's provided
+            NodeList indexHandlers = xmlDoc.getElementsByTagName("indexHandler");
+            if(indexHandlers.getLength() > 0) {
+                config.setIndexHandler(indexHandlers.item(0).getTextContent());
+            }
+
             // Process error handlers
             NodeList errorHandlers = xmlDoc.getElementsByTagName("errorHandler");
             for(int i = 0; i < errorHandlers.getLength(); ++i) {

@@ -35,6 +35,11 @@ public class SiteConfiguration {
     private String root;
 
     /**
+     * Name of the file in each directory to use a path handler
+     */
+    private String indexHandler = null;
+
+    /**
      * A list of error codes and the files to use for their handler
      */
     private HashMap<Integer, String> errorHandlers = new HashMap<Integer, String>();
@@ -85,6 +90,14 @@ public class SiteConfiguration {
 
     // PRIVATE METHODS /////////////////////////////////////////////////////
 
+    /**
+     * Retrieves the file object based on the url requested. This will automatically
+     * hijack directory requests and replace them with the index handler, if it is
+     * defined. If it isn't file not found will be returned.
+     * @param url   The url of the file requested by the client
+     * @return  a File object representation of the requested file
+     * @throws FileNotFoundException    Thrown if the file does not exist
+     */
     private File getFileFromUrl(String url) throws FileNotFoundException {
         // Swap / with the system-specific path separator
         url = url.replace('/', File.separatorChar);
@@ -101,6 +114,13 @@ public class SiteConfiguration {
         File file = new File(path);
         if(!file.exists()) {
             throw new FileNotFoundException("Path does not exist: " + path);
+        }
+
+        // If the file is a directory, get the site's index handler
+        if(file.isDirectory() && indexHandler != null) {
+            file = getFileFromUrl(url + indexHandler);
+        } else if(file.isDirectory()) {
+            throw new FileNotFoundException("Directory index not specified: " + path);
         }
 
         return file;
@@ -129,6 +149,7 @@ public class SiteConfiguration {
     // SETTERS /////////////////////////////////////////////////////////////
     public void setHost(String host) { this.host = host; }
     public void setRoot(String root) { this.root = root; }
+    public void setIndexHandler(String indexHandler) { this.indexHandler = indexHandler; }
 
     /**
      * Sets the port of the site configuration
