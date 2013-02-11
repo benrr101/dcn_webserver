@@ -7,6 +7,8 @@
 import java.io.*;
 import java.net.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.TimeZone;
 import java.util.Date;
 
@@ -16,23 +18,36 @@ public class PortListener extends Thread{
     private ServerSocket serverSocket;
     private Socket socket;
     private PrintWriter writer;
+    //not sure if deals with * host nicely
+    private HashMap<String, SiteConfiguration> configs = new HashMap<String, SiteConfiguration>();
 
     private int portNumber;
     private RequestException re;
     private String server;
-    public PortListener(int portNumber){
+
+
+    public PortListener(SiteConfiguration conf){
         this.server = "DCN2WebServer-Java";
-        this.portNumber = portNumber;
         try {
+            this.portNumber = conf.getPort();
             //create a new socket to listen on
-            this.serverSocket = new ServerSocket(portNumber);
+            configs.put(conf.getHost(), conf);
+            this.serverSocket = new ServerSocket(conf.getPort());
 
         } catch (IOException e) {
-            System.err.println("IOException in PortListener: " + e.getMessage());
+            System.err.println("IOException creating PortListener: " + e.getMessage());
         }
 
 
     }
+
+
+    public boolean addSiteConfiguration(SiteConfiguration conf){
+        configs.put(conf.getHost(), conf);
+        //if successful
+        return true;
+    }
+
     public void run(){
         for(;;){
             try {
@@ -43,6 +58,8 @@ public class PortListener extends Thread{
                 //BufferedWriter writer = new BufferedWriter(new PrintWriter(socket.getOutputStream()));
                 this.writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
+
+                //get string in
                 String requestString = "";
                 String line = "";
                 while((line = netListener.readLine()) != null){
@@ -50,12 +67,20 @@ public class PortListener extends Thread{
                         break;
                     requestString += line + "\r\n";
                 }
-                Request req = new Request(requestString);
+
+
+                //generate a request
+                Request req = generateRequest(requestString);
+                req.getHost();
+
+
+                //process request
                 Response res = req.process();
-                //System.out.println(res);
-                writer.println(res);
+
+                //write response to browser
+                write(res.toString());
                 writer.flush();
-                //writer.close();
+                //close socket
                 socket.close();
 
             } catch (IOException e) {
@@ -69,7 +94,7 @@ public class PortListener extends Thread{
                         " RequestException in PortListener on port " + this.portNumber + ": " + re.getMessage());
                 try {
                     this.re = re;
-                    writer.println("HTTP/1.0 " + re.getCode() + " Not Implemented");
+                    writer.println("HTTP/1.0 " + re.getCode() + " " + re.getMessage());
                     writer.println("Server: " + server);
                     writer.println();
                     writer.println("Error " + re.getCode() + " " + re.getMessage());
@@ -81,7 +106,6 @@ public class PortListener extends Thread{
             } finally {
                 //cleanup, if needed
                 try{
-
                     socket.close();
                 }catch (IOException e){
                     System.err.println(e.getMessage());
@@ -90,7 +114,23 @@ public class PortListener extends Thread{
         }
 
 
+    }//run
+
+    //todo: finish restructuring and move exception handling
+    private Request generateRequest(String requestString) throws RequestException{
+        Request req = new Request(requestString);
+        return req;
     }
 
+    //writes to browser
+    private void write(String toSend){
+        writer.println(toSend);
+        //write response to browser
+        writer.flush();
 
+    }
+
+    public int getPortNumber(){
+        return this.portNumber;
+    }
 }
