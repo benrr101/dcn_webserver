@@ -24,7 +24,7 @@ public class Response {
         header.append("HTTP/1.0 " + HTTPCode + " " + HTTPMessage + "\r\n");
         //header.append("Host: " + socketResource.getInetAddress() + "\r\n");
         header.append("Content-Type: " + this.contentType + "\r\n");
-        header.append("Content-Type: " + this.responseData.length + "\r\n");
+        header.append("Content-Length: " + this.responseData.length + "\r\n");
         //header.append("Server: " + socketResource.getLocalAddress() + "\r\n");
         header.append("\r\n");
         return header.toString();
