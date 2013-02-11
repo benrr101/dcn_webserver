@@ -17,7 +17,7 @@ public class PortListener extends Thread{
 
     private ServerSocket serverSocket;
     private Socket socket;
-    private PrintWriter writer;
+    private DataOutputStream output;
     //not sure if deals with * host nicely
     private HashMap<String, SiteConfiguration> configs = new HashMap<String, SiteConfiguration>();
 
@@ -55,8 +55,7 @@ public class PortListener extends Thread{
                 socket = serverSocket.accept();
 
                 BufferedReader netListener = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                //BufferedWriter writer = new BufferedWriter(new PrintWriter(socket.getOutputStream()));
-                this.writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+                output = new DataOutputStream(socket.getOutputStream());
 
 
                 //get string in
@@ -71,15 +70,24 @@ public class PortListener extends Thread{
 
                 //generate a request
                 Request req = generateRequest(requestString);
-                req.getHost();
 
+                // Grab the site to process the request with
+                SiteConfiguration site;
+                if(configs.get(req.getHost()) == null) {
+                    // Use the * host
+                    site = configs.get(SiteConfiguration.ANY_HOST);
+                } else {
+                    // Use the specified host
+                    site = configs.get(req.getHost());
+                }
+                req.setSiteConfiguration(site);
 
                 //process request
                 Response res = req.process();
 
                 //write response to browser
-                write(res.toString());
-                writer.flush();
+                write(res.getBytes());
+
                 //close socket
                 socket.close();
 
@@ -94,12 +102,11 @@ public class PortListener extends Thread{
                         " RequestException in PortListener on port " + this.portNumber + ": " + re.getMessage());
                 try {
                     this.re = re;
-                    writer.println("HTTP/1.0 " + re.getCode() + " " + re.getMessage());
-                    writer.println("Server: " + server);
-                    writer.println();
-                    writer.println("Error " + re.getCode() + " " + re.getMessage());
-                    writer.println();
-                    writer.flush();
+                    output.write(new String("HTTP/1.0 " + re.getCode() + " " + re.getMessage() + "\r\n").getBytes());
+                    output.write(new String("Server: " + server + "\r\n").getBytes());
+                    output.write(new String("Error " + re.getCode() + " " + re.getMessage() + "\r\n").getBytes());
+                    output.write(new String("\r\n").getBytes());
+                    output.flush();
                 } catch (Exception e) {
                     System.err.println("HOLY MASSIVE ERRORS BATMAN! " + e);
                 }
@@ -122,12 +129,15 @@ public class PortListener extends Thread{
         return req;
     }
 
-    //writes to browser
-    private void write(String toSend){
-        writer.println(toSend);
-        //write response to browser
-        writer.flush();
-
+    /**
+     * Output the packet to the client, auto flushes
+     * @param toSend        The bytes to write to the client
+     * @throws IOException  Thrown if the underlying data stream encounters an error
+     */
+    private void write(byte[] toSend) throws IOException {
+        // Write and flush
+        output.write(toSend);
+        output.flush();
     }
 
     public int getPortNumber(){
