@@ -1,8 +1,7 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Scanner;
-import java.util.StringTokenizer;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,6 +25,8 @@ public class Request {
     public static final int MAX_HTTP_MINOR = 0;
 
     // MEMBER VARIABLES ////////////////////////////////////////////////////
+    private String requestBody;
+
     private int majorVersion;
     private int minorVersion;
     private RequestMethod requestMethod;
@@ -47,38 +48,9 @@ public class Request {
      *                          protocol version, the method is unsupported, or
      *                          if the method line is malformed.
      */
-    public Request(String requestString) throws RequestException {
-        // Create a string reader
-        Scanner requestReader = new Scanner(requestString);
-
-        // Make sure we at least have one line
-        if(!requestReader.hasNextLine()) {
-            throw new RequestException(501, "Incomplete Method");
-        }
-
-        // First line must be the method, request URI, and protocol version
-        Pattern p = Pattern.compile("^(.*) (.*) HTTP/([0-9])\\.([0-9])$");
-        Matcher m = p.matcher(requestReader.nextLine());
-        if(!m.matches()) {
-            throw new RequestException(501, "Incomplete Method");
-        }
-
-        // Store the method
-        try {
-            requestMethod = RequestMethod.valueOf(m.group(1));
-        } catch(IllegalArgumentException e) {
-            throw new RequestException(501, "Unsupported Method");
-        }
-
-        // Store the URI
-        requestUri = m.group(2);
-
-        // Store the protocol
-        majorVersion = Integer.parseInt(m.group(3));
-        minorVersion = Integer.parseInt(m.group(4));
-        if(majorVersion > MAX_HTTP_MAJOR || (majorVersion == MAX_HTTP_MAJOR && minorVersion > MAX_HTTP_MINOR)) {
-            throw new RequestException(505, "HTTP Version Not Supported");
-        }
+    public Request(String requestString){
+        // Store the request
+        this.requestBody = requestString;
 
         // Create storage for the put and get variables
         this.getVariables = new HashMap<String, String>();
@@ -86,7 +58,19 @@ public class Request {
     }
 
     // METHODS /////////////////////////////////////////////////////////////
+
+    /**
+     * Processes the request and generates are response for output
+     * @return  A response that can easily be outputted to the socket
+     */
     public Response process() {
+        // Process the header
+        try {
+            processHeader();
+        } catch(RequestException e) {
+            return new ErrorResponse(e.getCode(), e.getMessage(), e.getFriendlyMessage(), requestUri);
+        }
+
         // Make sure that the request has a configuration to use for processing
         if(this.siteConfiguration == null) {
             throw new NullPointerException("Cannot process request if site configuration is undefined.");
@@ -107,14 +91,14 @@ public class Request {
             uri = requestUri;
         } else {
             // It's an invalid URI
-            return processError(400, "Bad Request");
+            return processError(400, "Bad Request", "The request does not match the format specified by HTTP/1.0");
         }
 
         // Break off the page to load
         StringTokenizer tok = new StringTokenizer(uri, "?");
         if(tok.countTokens() > 2) {
             // There's > 1 ? in the uri. that's invalid
-            return processError(400, "Bad Request");
+            return processError(400, "Bad Request", "The request does not match the format specified by HTTP/1.0");
         }
         String page = tok.nextToken();
 
@@ -127,7 +111,7 @@ public class Request {
         // Extract the page to load from the request uri
         try {
             byte[] q = siteConfiguration.getPage(page);
-
+            // @TODO: Support HEAD requests
 
             // Create a response based on the file bytes
             Response r = new Response(q, 200, "OK");
@@ -135,13 +119,51 @@ public class Request {
             return r;
 
         } catch(FileNotFoundException e) {
-            return processError(404, "File Not Found");
+            return processError(404, "File Not Found", "The requested page could not be found on this server.");
         } catch(IOException e) {
-            return processError(500, "Internal Server Error");
+            return processError(500, "Internal Server Error", "An internal server error has occurred.");
         }
     }
 
     // PRIVATE METHODS /////////////////////////////////////////////////////
+
+    /**
+     * Processes the header of the request internally.
+     * @throws RequestException Thrown if there is a problem with the request
+     */
+    private void processHeader() throws RequestException {
+        // Create a string reader
+        Scanner requestReader = new Scanner(this.requestBody);
+
+        // Make sure we at least have one line
+        if(!requestReader.hasNextLine()) {
+            throw new RequestException(501, "Incomplete Method", "The HTTP header provided is incomplete.");
+        }
+
+        // First line must be the method, request URI, and protocol version
+        Pattern p = Pattern.compile("^(.*) (.*) HTTP/([0-9])\\.([0-9])$");
+        Matcher m = p.matcher(requestReader.nextLine());
+        if(!m.matches()) {
+            throw new RequestException(501, "Incomplete Method", "The HTTP header provided is incomplete.");
+        }
+
+        // Store the method
+        try {
+            requestMethod = RequestMethod.valueOf(m.group(1));
+        } catch(IllegalArgumentException e) {
+            throw new RequestException(501, "Unsupported Method", "The HTTP request method is unsupported.");
+        }
+
+        // Store the URI
+        requestUri = m.group(2);
+
+        // Store the protocol
+        majorVersion = Integer.parseInt(m.group(3));
+        minorVersion = Integer.parseInt(m.group(4));
+        if(majorVersion > MAX_HTTP_MAJOR || (majorVersion == MAX_HTTP_MAJOR && minorVersion > MAX_HTTP_MINOR)) {
+            throw new RequestException(505, "HTTP Version Not Supported", "This HTTP protocol version is not supported");
+        }
+    }
 
     /**
      * Processes GET style parameters from the uri and stores them in the
@@ -166,49 +188,32 @@ public class Request {
         }
     }
 
-    private Response processError(int code, String message) {
+    /**
+     * Generates an error page for it the error. If an error handler for
+     * the error is defined in the site configuration, the page for the error is
+     * retrieved. If that page does not exist, the default error page is returned.
+     * @param code          The HTTP code for the error that occurred.
+     * @param message       The HTTP message for the error that occurred.
+     * @param friendlyError A friendlier error message to be included with the error page
+     * @return  An error response
+     */
+    private Response processError(int code, String message, String friendlyError) {
         // Grab the page for the error code, if it exists
         String path = siteConfiguration.getErrorHandlerPath(code);
         if(path == null) {
-            Response r = new Response(generateErrorBody(code, message).getBytes(), code, message);
-            r.setContentType("text/html");
-            return r;
+            return new ErrorResponse(code, message, friendlyError, requestUri);
         } else {
             try {
                 // Return the error handler page
                 return new Response(siteConfiguration.getPage(path), code, message);
             } catch(Exception e) {
-                Response r = new Response(generateErrorBody(code, message).getBytes(), code, message);
-                r.setContentType("text/html");
-                return r;
+                friendlyError += "<br/>An additional error 404 was incurred while attempting to ";
+                friendlyError += "find the appropriate page for this error";
+                return new ErrorResponse(code, message, friendlyError, requestUri);
             }
         }
     }
 
-    /**
-     * Generates an HTML error page based on the error code and the message
-     * of the error
-     * @param errorCode The code of the error
-     * @param message   The message of the error
-     * @return  A string of the html for the error page
-     */
-    private String generateErrorBody(int errorCode, String message) {
-        // @TODO: Future improvement, use a XSLT
-        StringBuilder build = new StringBuilder();
-        build.append("<html><body><title>");
-        build.append(message);
-        build.append("</title><body><h1>Error ");
-        build.append(errorCode);
-        build.append("</h1><p>");
-        build.append(message);
-        build.append("</p><hr>");
-        build.append("<p style='font-style:italic'>DCN2 Web Server/Java ");
-        build.append(System.getProperty("java.version"));
-        build.append("/");
-        build.append(System.getProperty("os.name"));
-        build.append("</p></body></html>");
-        return build.toString();
-    }
     // SETTERS /////////////////////////////////////////////////////////////
 
     /**

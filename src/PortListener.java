@@ -5,9 +5,9 @@
  */
 
 import java.io.*;
-import java.net.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TimeZone;
 import java.util.Date;
@@ -18,16 +18,12 @@ public class PortListener extends Thread{
     private ServerSocket serverSocket;
     private Socket socket;
     private DataOutputStream output;
-    //not sure if deals with * host nicely
     private HashMap<String, SiteConfiguration> configs = new HashMap<String, SiteConfiguration>();
 
     private int portNumber;
-    private RequestException re;
-    private String server;
 
 
     public PortListener(SiteConfiguration conf){
-        this.server = "DCN2WebServer-Java";
         try {
             this.portNumber = conf.getPort();
             //create a new socket to listen on
@@ -37,8 +33,6 @@ public class PortListener extends Thread{
         } catch (IOException e) {
             System.err.println("IOException creating PortListener: " + e.getMessage());
         }
-
-
     }
 
 
@@ -57,19 +51,17 @@ public class PortListener extends Thread{
                 BufferedReader netListener = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 output = new DataOutputStream(socket.getOutputStream());
 
-
                 //get string in
                 String requestString = "";
-                String line = "";
+                String line;
                 while((line = netListener.readLine()) != null){
                     if(line.isEmpty())
                         break;
                     requestString += line + "\r\n";
                 }
 
-
                 //generate a request
-                Request req = generateRequest(requestString);
+                Request req = new Request(requestString);
 
                 // Grab the site to process the request with
                 SiteConfiguration site;
@@ -84,6 +76,9 @@ public class PortListener extends Thread{
 
                 //process request
                 Response res = req.process();
+                if(res instanceof ErrorResponse) {
+                    logError(((ErrorResponse) res).getLogMessage());
+                }
 
                 //write response to browser
                 write(res.getBytes());
@@ -92,42 +87,19 @@ public class PortListener extends Thread{
                 socket.close();
 
             } catch (IOException e) {
-                //todo: log this instead of printing to stderr
-                System.err.println("IOException in PortListener: " + e);
-            } catch (RequestException re) {
-                //todo: log this instead of printing to stderr
-                SimpleDateFormat gmtDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                gmtDateFormat.setTimeZone(TimeZone.getTimeZone("GMT-5"));
-                System.err.println(gmtDateFormat.format(new Date()) +
-                        " RequestException in PortListener on port " + this.portNumber + ": " + re.getMessage());
-                try {
-                    this.re = re;
-                    output.write(new String("HTTP/1.0 " + re.getCode() + " " + re.getMessage() + "\r\n").getBytes());
-                    output.write(new String("Server: " + server + "\r\n\r\n").getBytes());
-                    output.write(new String("Error " + re.getCode() + " " + re.getMessage() + "\r\n").getBytes());
-                    output.write(new String("\r\n").getBytes());
-                    output.flush();
-                } catch (Exception e) {
-                    System.err.println("HOLY MASSIVE ERRORS BATMAN! " + e);
-                }
+                logError("IOException in PortListener: " + e.getMessage());
             } finally {
                 //cleanup, if needed
                 try{
                     socket.close();
                 }catch (IOException e){
-                    System.err.println(e.getMessage());
+                    logError("IOException in PortListener: " + e.getMessage());
                 }
             }
         }
 
 
     }//run
-
-    //todo: finish restructuring and move exception handling
-    private Request generateRequest(String requestString) throws RequestException{
-        Request req = new Request(requestString);
-        return req;
-    }
 
     /**
      * Output the packet to the client, auto flushes
@@ -140,7 +112,10 @@ public class PortListener extends Thread{
         output.flush();
     }
 
-    public int getPortNumber(){
-        return this.portNumber;
+    private void logError(String message) {
+        // Log it to std error
+        SimpleDateFormat gmtDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        gmtDateFormat.setTimeZone(TimeZone.getDefault());
+        System.err.println(gmtDateFormat.format(new Date()) + "Port: " + portNumber + " " + message);
     }
 }

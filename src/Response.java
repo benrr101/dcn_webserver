@@ -7,11 +7,11 @@
 import java.net.Socket;
 
 public class Response {
-    private byte[] responseData;
-    private String HTTPMessage;
-    private int HTTPCode;
+    protected byte[] responseData;
+    protected String HTTPMessage;
+    protected int HTTPCode;
 
-    private String contentType;
+    protected String contentType;
 
     public Response(byte[] responseData, int HTTPCode, String HTTPMessage){
         this.responseData = responseData;
