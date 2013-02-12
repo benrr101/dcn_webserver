@@ -19,8 +19,10 @@ public class DCN2WebServer {
             if(!listeners.containsKey(conf.getPort())){
                 PortListener temp = new PortListener(conf);
                 listeners.put(conf.getPort(), temp);
+            } else {
+                PortListener p = listeners.get(conf.getPort());
+                p.addSiteConfiguration(conf);
             }
-            // @TODO: Handler multiple hosts on a single port
         }
         //start the PortListeners
         for(Integer l : listeners.keySet()){
