@@ -103,7 +103,7 @@ public class PortListener extends Thread{
                 try {
                     this.re = re;
                     output.write(new String("HTTP/1.0 " + re.getCode() + " " + re.getMessage() + "\r\n").getBytes());
-                    output.write(new String("Server: " + server + "\r\n").getBytes());
+                    output.write(new String("Server: " + server + "\r\n\r\n").getBytes());
                     output.write(new String("Error " + re.getCode() + " " + re.getMessage() + "\r\n").getBytes());
                     output.write(new String("\r\n").getBytes());
                     output.flush();

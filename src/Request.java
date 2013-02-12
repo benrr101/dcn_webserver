@@ -128,9 +128,9 @@ public class Request {
         try {
             byte[] q = siteConfiguration.getPage(page);
 
+
             // Create a response based on the file bytes
             Response r = new Response(q, 200, "OK");
-            //@TODO: handle 404's here. they could come through
             r.setContentType(siteConfiguration.getPageContentType(page));
             return r;
 
@@ -170,19 +170,44 @@ public class Request {
         // Grab the page for the error code, if it exists
         String path = siteConfiguration.getErrorHandlerPath(code);
         if(path == null) {
-            // @TODO: Return the default error handler
-            System.err.println("Failed to find error handler");
-            return null;
+            Response r = new Response(generateErrorBody(code, message).getBytes(), code, message);
+            r.setContentType("text/html");
+            return r;
         } else {
             try {
                 // Return the error handler page
                 return new Response(siteConfiguration.getPage(path), code, message);
             } catch(Exception e) {
-                // @TODO: Return the default error handler
-                System.err.println(e.getMessage());
-                return null;
+                Response r = new Response(generateErrorBody(code, message).getBytes(), code, message);
+                r.setContentType("text/html");
+                return r;
             }
         }
+    }
+
+    /**
+     * Generates an HTML error page based on the error code and the message
+     * of the error
+     * @param errorCode The code of the error
+     * @param message   The message of the error
+     * @return  A string of the html for the error page
+     */
+    private String generateErrorBody(int errorCode, String message) {
+        // @TODO: Future improvement, use a XSLT
+        StringBuilder build = new StringBuilder();
+        build.append("<html><body><title>");
+        build.append(message);
+        build.append("</title><body><h1>Error ");
+        build.append(errorCode);
+        build.append("</h1><p>");
+        build.append(message);
+        build.append("</p><hr>");
+        build.append("<p style='font-style:italic'>DCN2 Web Server/Java ");
+        build.append(System.getProperty("java.version"));
+        build.append("/");
+        build.append(System.getProperty("os.name"));
+        build.append("</p></body></html>");
+        return build.toString();
     }
     // SETTERS /////////////////////////////////////////////////////////////
 
