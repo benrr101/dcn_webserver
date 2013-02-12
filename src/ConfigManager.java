@@ -14,7 +14,7 @@ import java.util.ArrayList;
  */
 public class ConfigManager {
     // CONSTANTS ///////////////////////////////////////////////////////////
-    private static final String siteConfigFolder = "siteConfigs";
+    private static final String siteConfigFolder = "SiteConfigs";
 
     // MEMBER VARIABLES ////////////////////////////////////////////////////
     private static ConfigManager ourInstance = new ConfigManager();
