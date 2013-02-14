@@ -5,6 +5,7 @@
  */
 
 public class Response {
+    private boolean headOnly = false;
     protected byte[] responseData;
     protected String HTTPMessage;
     protected int HTTPCode;
@@ -39,6 +40,11 @@ public class Response {
     public byte[] getBytes() {
         // Concatenate the header and content
         byte[] header = constructHeader().getBytes();
+        if(headOnly) {
+            return header;
+        }
+
+        // We're printing the entire content;
         byte[] concat = new byte[header.length + responseData.length];
         System.arraycopy(header, 0, concat, 0, header.length);
         System.arraycopy(responseData, 0, concat, header.length, responseData.length);
@@ -48,5 +54,9 @@ public class Response {
 
     public void setContentType(String contentType) {
         this.contentType = contentType;
+    }
+
+    public void setHeadOnly(boolean val) {
+        headOnly = val;
     }
 }

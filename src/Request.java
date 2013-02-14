@@ -130,7 +130,12 @@ public class Request {
                 r = new Response(siteConfiguration.getPage(page), 200, "OK");
                 r.contentType = siteConfiguration.getPageContentType(page);
             }
-            // @TODO: Support HEAD requests
+
+            // Set the header method if we're doing header stuff
+            if(RequestMethod.HEAD.equals(requestMethod)) {
+                r.setHeadOnly(true);
+            }
+
 
             return r;
 

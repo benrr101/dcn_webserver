@@ -2,6 +2,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -28,7 +29,13 @@ public class CgiResponse extends Response {
             // Special case, we want the status
             if(line.toLowerCase().startsWith("status:")) {
                 tok.nextToken();
-                this.HTTPCode = Integer.parseInt(tok.nextToken().trim());
+                Pattern p2 = Pattern.compile("(\\d+) (.*)");
+                Matcher m = p2.matcher(tok.nextToken());
+                this.HTTPCode = Integer.parseInt(m.group(1));
+                this.HTTPMessage = m.group(2);
+            } else if(line.toLowerCase().startsWith("content-type")) {
+                tok.nextToken();
+                this.contentType = tok.nextToken().trim();
             } else if(!p.matcher(line).matches()) {
                 continue;
             } else {
@@ -47,6 +54,7 @@ public class CgiResponse extends Response {
         responseData = content.toString().getBytes();
         if(HTTPCode == 0) {
             HTTPCode = 200;
+            HTTPMessage = "OK";
         }
         if(contentType == null) {
             contentType = "text/html";
