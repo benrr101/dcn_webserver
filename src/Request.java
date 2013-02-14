@@ -1,5 +1,6 @@
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import sun.java2d.loops.ProcessPath;
+
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -32,11 +33,14 @@ public class Request {
     private RequestMethod requestMethod;
     private String requestUri;
     private String host;
+    private String remoteIp;
 
-    private HashMap<String, String> getVariables;
-    private HashMap<String, String> postVariables;
+    private String contentType;
+    private String contentLength;
 
     private SiteConfiguration siteConfiguration = null;
+
+    private String requestContent;
 
     // CONSTRUCTOR /////////////////////////////////////////////////////////
 
@@ -48,13 +52,10 @@ public class Request {
      *                          protocol version, the method is unsupported, or
      *                          if the method line is malformed.
      */
-    public Request(String requestString){
+    public Request(String requestString, String remoteIp){
         // Store the request
         this.requestBody = requestString;
-
-        // Create storage for the put and get variables
-        this.getVariables = new HashMap<String, String>();
-        this.postVariables = new HashMap<String, String>();
+        this.remoteIp = remoteIp;
     }
 
     // METHODS /////////////////////////////////////////////////////////////
@@ -102,25 +103,43 @@ public class Request {
         }
         String page = tok.nextToken();
 
-        // Break off get parameters
-        if(tok.hasMoreTokens()) {
-            String getParams = tok.nextToken();
-            processGetParameters(getParams);
-        }
-
         // Extract the page to load from the request uri
         try {
-            byte[] q = siteConfiguration.getPage(page);
+            // Declare the bytes for the page
+            byte[] pageBytes;
+            String contentType;
+
+            // Grab the extension of the file
+            Pattern extPat = Pattern.compile(".*\\.(.*)");
+            Matcher m = extPat.matcher(page);
+
+            Response r;
+
+            // Determine if a CGI should be ran
+            if(m.matches()) {
+                String extension = m.group(1);
+                String extensionHandler = siteConfiguration.getCgiHandler(extension);
+                if(extensionHandler != null) {
+                    // CGI away!
+                    pageBytes = runCgiRequest(page, extensionHandler);
+                    r = new Response(pageBytes, 200, "OK");
+                } else {
+                    // No handler for the type, load the file statically
+                    r = new Response(siteConfiguration.getPage(page), 200, "OK");
+                    r.contentType = siteConfiguration.getPageContentType(page);
+                }
+            } else {
+                // No extension, load the file statically
+                r = new Response(siteConfiguration.getPage(page), 200, "OK");
+                r.contentType = siteConfiguration.getPageContentType(page);
+            }
             // @TODO: Support HEAD requests
 
-            // Create a response based on the file bytes
-            Response r = new Response(q, 200, "OK");
-            r.setContentType(siteConfiguration.getPageContentType(page));
             return r;
 
         } catch(FileNotFoundException e) {
             return processError(404, "File Not Found", "The requested page could not be found on this server.");
-        } catch(IOException e) {
+        } catch(Exception e) {
             return processError(500, "Internal Server Error", "An internal server error has occurred.");
         }
     }
@@ -163,28 +182,39 @@ public class Request {
         if(majorVersion > MAX_HTTP_MAJOR || (majorVersion == MAX_HTTP_MAJOR && minorVersion > MAX_HTTP_MINOR)) {
             throw new RequestException(505, "HTTP Version Not Supported", "This HTTP protocol version is not supported");
         }
-    }
 
-    /**
-     * Processes GET style parameters from the uri and stores them in the
-     * internal get variables
-     * @param   query     The query portion of the URI
-     */
-    private void processGetParameters(String query) {
-        // Split up the query string based on &'s, x=y
-        StringTokenizer getTok = new StringTokenizer(query, "&");
-        Pattern p = Pattern.compile("(.*)=(.*)");
-
-        // Iterate over the parameters and create a new one for each parameter given
-        while(getTok.hasMoreTokens()) {
-            // Check to see if it matches the format
-            Matcher m = p.matcher(getTok.nextToken());
-            if(!m.matches()) {
-                continue;
+        // Read the rest of the header stuff and process what we can
+        while(requestReader.hasNextLine()) {
+            // Lines are always formatted: Attribute: value
+            String line = requestReader.nextLine();
+            StringTokenizer tok = new StringTokenizer(line, ":");
+            if(line.toLowerCase().startsWith("content-type:")) {
+                tok.nextToken();
+                this.contentType = tok.nextToken().trim();
+            } else if(line.toLowerCase().startsWith("content-length:")) {
+                tok.nextToken();
+                this.contentLength = tok.nextToken().trim();
             }
 
-            // It matches the proper format. Now process it.
-            this.getVariables.put(m.group(1), m.group(2));
+            // We reached the end of the header
+            if(line.equals("\r\n")) {
+                break;
+            }
+        }
+
+        // Read the rest of the request into the content
+        while(requestReader.hasNextLine()) {
+            requestContent += requestReader.nextLine();
+        }
+
+        if(contentLength == null && requestContent != null) {
+            contentLength = (new Integer(requestContent.length())).toString();
+        } else {
+            contentLength = (new Integer(0)).toString();
+            requestContent = "";
+        }
+        if(contentType == null) {
+            contentType = "text/html";
         }
     }
 
@@ -214,6 +244,53 @@ public class Request {
         }
     }
 
+    private byte[] runCgiRequest(String file, String handler) {
+        // Create a process builder and grab the environment variables
+        ProcessBuilder p = new ProcessBuilder(handler, siteConfiguration.getRoot() + file);
+        Map<String, String> env = p.environment();
+
+        // Set up the environment variables
+        env.put("REDIRECT_STATUS", "true");         // Required for php 5.3.3 to play nice
+        env.put("CONTENT_LENGTH", contentLength);
+        env.put("CONTENT_TYPE", contentType);
+        env.put("GATEWAY_INTERFACE", "CGI/1.1");
+        env.put("QUERY_STRING", "qqq!");
+        env.put("REMOTE_ADDR", remoteIp);
+        env.put("REQUEST_METHOD", requestMethod.name());
+        env.put("SCRIPT_NAME", siteConfiguration.getRoot() + file);
+        env.put("SERVER_PORT", (Integer.toString(siteConfiguration.getPort())));
+        env.put("SERVER_PROTOCOL", "HTTP/" + MAX_HTTP_MAJOR + "." + MAX_HTTP_MINOR);
+        env.put("SERVER_SOFTWARE", "DCN2-Web Server");
+
+        // Set the working directory to the directory of the file
+        File f = new File(siteConfiguration.getRoot() + file);
+        p.directory(f.getParentFile());
+
+        // Execute!
+        try {
+            // Start it up
+            Process cgi = p.start();
+
+            // Grab stdin and out
+            OutputStream stdIn = cgi.getOutputStream();
+            InputStream stdOut = cgi.getInputStream();
+
+            // Dump the content to the cgi handler
+            if(requestContent.length() > 0) {
+                stdIn.write(requestContent.getBytes());
+                stdIn.flush();
+            }
+
+            // Read in the stdOut
+            StreamGobbler sg = new StreamGobbler(stdOut);
+            sg.start();
+            cgi.waitFor();
+            return sg.getBody().getBytes();
+        } catch(Exception e) {
+            throw new RequestException(500, "Internal Server Error", "Executing script failed.");
+        }
+    }
+
     // SETTERS /////////////////////////////////////////////////////////////
 
     /**
@@ -229,6 +306,8 @@ public class Request {
 
         this.siteConfiguration = config;
     }
+
+    public void setRemoteIp(String ip) { this.remoteIp = ip; }
 
     // GETTERS /////////////////////////////////////////////////////////////
     public String getHost() {

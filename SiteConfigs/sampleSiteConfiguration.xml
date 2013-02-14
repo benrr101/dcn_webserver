@@ -1,10 +1,13 @@
 <?xml version="1.0"?>
 <site>
-    <rootPath>C:\webroot</rootPath>
-    <port>80</port>
+    <rootPath>/home/Omega/webroot</rootPath>
+    <port>8081</port>
     <host>*</host>
     <indexHandler>index.html</indexHandler>
     <errorHandlers>
         <errorHandler code='404'>404.html</errorHandler>
     </errorHandlers>
+    <cgiHandlers>
+        <cgiHandler extension='php'>php-cgi</cgiHandler>
+    </cgiHandlers>
 </site>

@@ -61,7 +61,7 @@ public class PortListener extends Thread{
                 }
 
                 //generate a request
-                Request req = new Request(requestString);
+                Request req = new Request(requestString, socket.getInetAddress().toString());
 
                 // Grab the site to process the request with
                 SiteConfiguration site;

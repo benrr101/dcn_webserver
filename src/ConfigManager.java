@@ -110,6 +110,15 @@ public class ConfigManager {
                 config.addErrorHandler(code, path);
             }
 
+            // Process cgi handlers
+            NodeList cgiHandlers = xmlDoc.getElementsByTagName("cgiHandler");
+            for(int i = 0; i < cgiHandlers.getLength(); ++i) {
+                Element cgiHandler = (Element)cgiHandlers.item(i);
+                String extension = cgiHandler.getAttribute("extension");
+                String executable = cgiHandler.getTextContent();
+                config.addCgiHandler(extension, executable);
+            }
+
             return config;
 
         } catch(Exception e) {

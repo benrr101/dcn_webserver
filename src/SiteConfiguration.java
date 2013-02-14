@@ -44,6 +44,11 @@ public class SiteConfiguration {
      */
     private HashMap<Integer, String> errorHandlers = new HashMap<Integer, String>();
 
+    /**
+     * A list of file extensions and what executable to use to open them
+     */
+    private HashMap<String, String> cgiHandlers = new HashMap<String, String>();
+
     // METHODS /////////////////////////////////////////////////////////////
 
     /**
@@ -57,8 +62,6 @@ public class SiteConfiguration {
     public byte[] getPage(String url) throws IOException {
         // Get the file to display
         File file = getFileFromUrl(url);
-
-        // @TODO: Decide on CGI stuff here
 
         // Build a stream for reading bytes from the file
         byte[] fileData = new byte[(int)file.length()];
@@ -143,8 +146,13 @@ public class SiteConfiguration {
         return errorHandlers.get(code);
     }
 
+    public String getCgiHandler(String extension) {
+        return cgiHandlers.get(extension);
+    }
+
     public int getPort() { return this.port; }
     public String getHost() { return this.host; }
+    public String getRoot() { return this.root; }
 
     // SETTERS /////////////////////////////////////////////////////////////
     public void setHost(String host) { this.host = host; }
@@ -171,5 +179,15 @@ public class SiteConfiguration {
     public void addErrorHandler(int code, String path) {
         // Store the error handler
         this.errorHandlers.put(code, path);
+    }
+
+    /**
+     * Register the extension handler
+     * @param extension     The extension to use to handle the file
+     * @param executable    The executable to call for the file
+     */
+    public void addCgiHandler(String extension, String executable) {
+        // Store the cgi handler
+        this.cgiHandlers.put(extension, executable);
     }
 }
