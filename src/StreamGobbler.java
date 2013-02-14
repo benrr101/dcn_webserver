@@ -8,7 +8,7 @@ import java.io.*;
 class StreamGobbler extends Thread
 {
     InputStream is;
-    String body;
+    String body = "";
 
     StreamGobbler(InputStream is)
     {
@@ -22,8 +22,11 @@ class StreamGobbler extends Thread
             InputStreamReader isr = new InputStreamReader(is);
             BufferedReader br = new BufferedReader(isr);
             String line;
-            while ( (line = br.readLine()) != null)
+            while ( (line = br.readLine()) != null) {
                 body += line;
+                body += "\r\n";
+            }
+
         } catch (IOException ioe)
         {
             ioe.printStackTrace();

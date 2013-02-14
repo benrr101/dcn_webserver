@@ -121,8 +121,7 @@ public class Request {
                 String extensionHandler = siteConfiguration.getCgiHandler(extension);
                 if(extensionHandler != null) {
                     // CGI away!
-                    pageBytes = runCgiRequest(page, extensionHandler);
-                    r = new Response(pageBytes, 200, "OK");
+                    r = new CgiResponse(runCgiRequest(page, extensionHandler));
                 } else {
                     // No handler for the type, load the file statically
                     r = new Response(siteConfiguration.getPage(page), 200, "OK");
@@ -244,7 +243,7 @@ public class Request {
         }
     }
 
-    private byte[] runCgiRequest(String file, String handler) {
+    private String runCgiRequest(String file, String handler) {
         // Create a process builder and grab the environment variables
         ProcessBuilder p = new ProcessBuilder(handler, siteConfiguration.getRoot() + file);
         Map<String, String> env = p.environment();
@@ -285,7 +284,7 @@ public class Request {
             StreamGobbler sg = new StreamGobbler(stdOut);
             sg.start();
             cgi.waitFor();
-            return sg.getBody().getBytes();
+            return sg.getBody();
         } catch(Exception e) {
             throw new RequestException(500, "Internal Server Error", "Executing script failed.");
         }

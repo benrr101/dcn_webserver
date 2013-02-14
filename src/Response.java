@@ -4,8 +4,6 @@
  * Time: 4:45 PM
  */
 
-import java.net.Socket;
-
 public class Response {
     protected byte[] responseData;
     protected String HTTPMessage;
@@ -13,19 +11,19 @@ public class Response {
 
     protected String contentType;
 
+    protected Response() {}
+
     public Response(byte[] responseData, int HTTPCode, String HTTPMessage){
         this.responseData = responseData;
         this.HTTPCode = HTTPCode;
         this.HTTPMessage = HTTPMessage;
     }
 
-    private String constructHeader(){
+    protected String constructHeader(){
         StringBuilder header = new StringBuilder();
         header.append("HTTP/1.0 " + HTTPCode + " " + HTTPMessage + "\r\n");
-        //header.append("Host: " + socketResource.getInetAddress() + "\r\n");
         header.append("Content-Type: " + this.contentType + "\r\n");
         header.append("Content-Length: " + this.responseData.length + "\r\n");
-        //header.append("Server: " + socketResource.getLocalAddress() + "\r\n");
         header.append("\r\n");
         return header.toString();
     }
