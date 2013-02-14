@@ -254,10 +254,10 @@ public class Request {
         env.put("CONTENT_LENGTH", contentLength);
         env.put("CONTENT_TYPE", contentType);
         env.put("GATEWAY_INTERFACE", "CGI/1.1");
-        env.put("QUERY_STRING", "qqq!");
+        env.put("QUERY_STRING", "qqq");
         env.put("REMOTE_ADDR", remoteIp);
         env.put("REQUEST_METHOD", requestMethod.name());
-        env.put("SCRIPT_NAME", siteConfiguration.getRoot() + file);
+        env.put("SCRIPT_FILENAME", siteConfiguration.getRoot() + file);
         env.put("SERVER_PORT", (Integer.toString(siteConfiguration.getPort())));
         env.put("SERVER_PROTOCOL", "HTTP/" + MAX_HTTP_MAJOR + "." + MAX_HTTP_MINOR);
         env.put("SERVER_SOFTWARE", "DCN2-Web Server");
