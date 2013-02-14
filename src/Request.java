@@ -1,13 +1,11 @@
-import sun.java2d.loops.ProcessPath;
-
 import java.io.*;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * This class represents a HTTP request.
+ * @author Benjamin Russell (brr1922@rit.edu)
  */
 public class Request {
 

@@ -1,4 +1,3 @@
-import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -6,11 +5,8 @@ import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 /**
- * Created with IntelliJ IDEA.
- * User: Omega
- * Date: 2/14/13
- * Time: 12:55 AM
- * To change this template use File | Settings | File Templates.
+ * A class to specially handle cgi responses.
+ * @author Benjamin Russell (brr1922@rit.edu)
  */
 public class CgiResponse extends Response {
 
