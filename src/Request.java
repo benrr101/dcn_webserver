@@ -101,8 +101,10 @@ public class Request {
             return processError(400, "Bad Request", "The request does not match the format specified by HTTP/1.0");
         }
         String page = tok.nextToken();
-        if(tok.hasMoreTokens()) {
-            requestQuery = tok.nextToken();
+        Pattern queryP = Pattern.compile("(.*)\\?(.*)");
+        Matcher queryM = queryP.matcher(uri);
+        if(queryM.matches()) {
+            requestQuery = queryM.group(2);
         }
 
         // Extract the page to load from the request uri
@@ -261,7 +263,7 @@ public class Request {
         env.put("CONTENT_TYPE", contentType);
         env.put("GATEWAY_INTERFACE", "CGI/1.1");
         if(requestQuery != null) {
-            env.put("QUERY_STRING", "");
+            env.put("QUERY_STRING", requestQuery);
         }
         env.put("REMOTE_ADDR", remoteIp);
         env.put("REQUEST_METHOD", requestMethod.name());
